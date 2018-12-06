@@ -32,7 +32,7 @@ class _ProgressBar(object):
         Processing ██████████∙∙∙∙∙∙∙∙ Estimate time to finish: 7 seconds
     """
 
-    def __init__(self, expect_time: int, message: str):
+    def __init__(self, expect_time: int, message: str, posix=True):
         """Constructor of the class.
 
         It will take "expect_time" seconds for the progress bar to go from 0%
@@ -43,12 +43,22 @@ class _ProgressBar(object):
             expect_time: How long the progress bar is going to run.
                 (In seconds).
             message: A prefix of the progress bar showing what it is about.
+            posix: Whether the progress bar is being used in a posix system.
+                Some characters are not available in Windows command shell. We
+                need this parameter to determine what to show for progress bar
+                in Windows.
         """
         self._expect_time = expect_time
 
         # The bar will tick every 0.5 seconds.
         self._bar = bar.ChargingBar(message, max=expect_time * 2)
         self._bar.suffix = 'Estimate time to finish: %(eta)d seconds'
+
+        # This will the progress bar disappear. Only "time to finish" will show
+        # up.
+        if not posix:
+            self._bar.fill = ''
+            self._bar.empty_fill = ''
         self._thread = threading.Thread(target=self._run)
         self._bar_lock = threading.Lock()
 
@@ -163,8 +173,11 @@ class ConsoleIO(IO):
             None
         """
 
-        # TODO: Check whether the progress bar is writing to a tty.
-        progress_bar = _ProgressBar(expect_time, message)
+        if os.isatty(sys.stdout.fileno()) and os.name == 'posix':
+            progress_bar = _ProgressBar(expect_time, message, posix=True)
+        else:
+            progress_bar = _ProgressBar(expect_time, message, posix=False)
+
         try:
             progress_bar.start()
             yield
