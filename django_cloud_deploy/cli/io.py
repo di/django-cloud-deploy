@@ -29,7 +29,7 @@ class _ProgressBar(object):
     """A progress bar showing status of a task.
 
     Output of the progress bar will be like the following:
-        Processing █████████████████∙∙∙∙∙∙∙∙∙∙∙∙∙∙∙ 55%
+        Processing ██████████∙∙∙∙∙∙∙∙ Estimate time to finish: 7 seconds
     """
 
     def __init__(self, expect_time: int, message: str):
@@ -44,10 +44,11 @@ class _ProgressBar(object):
                 (In seconds).
             message: A prefix of the progress bar showing what it is about.
         """
-        self._expected_time = expect_time
+        self._expect_time = expect_time
 
         # The bar will tick every 0.5 seconds.
         self._bar = bar.ChargingBar(message, max=expect_time * 2)
+        self._bar.suffix = 'Estimate time to finish: %(eta)d seconds'
         self._thread = threading.Thread(target=self._run)
         self._bar_lock = threading.Lock()
 
@@ -55,34 +56,29 @@ class _ProgressBar(object):
         self._thread.start()
 
     def finish(self):
-        self._finish()
-
-    def _run(self):
-        """The function to update progress bar."""
-        for _ in range(self._expected_time * 2):
-            self._bar_lock.acquire()
-
-            # The progress of the bar can be modified by _finish method. This
-            # part is to handle that case.
-            if self._bar.progress == 1:
-                self._bar_lock.release()
-                return
-            self._bar.next()
-            self._bar_lock.release()
-            time.sleep(0.5)
-
-    def _finish(self):
         """Make progress bar go to the end.
 
         This is useful when the task takes shorter than the expect time to
         finish.
         """
-        self._bar_lock.acquire()
+        with self._bar_lock:
+            # Go to the end of progress bar.
+            self._bar.goto(self._expect_time * 2)
+            self._bar.finish()
 
-        # Go to the end of progress bar.
-        self._bar.goto(self._expected_time * 2)
-        self._bar.finish()
-        self._bar_lock.release()
+    def _run(self):
+        """The function to update progress bar."""
+
+        # TODO: Find a way to handle tasks take longer than expectation.
+        # Right now the progress bar will stuck.
+        for _ in range(self._expect_time * 2):
+            with self._bar_lock:
+                # The progress of the bar can be modified by _finish method.
+                # This part is to handle that case.
+                if self._bar.progress == 1:
+                    return
+                self._bar.next()
+            time.sleep(0.5)
 
 
 class IO(abc.ABC):
@@ -149,8 +145,26 @@ class ConsoleIO(IO):
         return getpass.getpass(prompt)
 
     @contextlib.contextmanager
-    def progressbar(self, expected_time: int, message: str):
-        progress_bar = _ProgressBar(expected_time, message)
+    def progressbar(self, expect_time: int, message: str):
+        """A context manager that shows a progress bar.
+
+        Output of the progress bar will be like the following:
+            Processing ██████████∙∙∙∙∙∙∙∙ Estimate time to finish: 7 seconds
+
+        If the task ends earlier than expected, the progress bar will directly
+        go to the end.
+
+        Args:
+            expect_time: How long the progress bar is going to run.
+                (In seconds).
+            message: A prefix of the progress bar showing what it is about.
+
+        Yields:
+            None
+        """
+
+        # TODO: Check whether the progress bar is writing to a tty.
+        progress_bar = _ProgressBar(expect_time, message)
         try:
             progress_bar.start()
             yield
