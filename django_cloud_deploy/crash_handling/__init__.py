@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A module handles crash of the tool."""
+"""A module handles crashes of the tool."""
 
 import os
 import platform
@@ -48,16 +48,21 @@ def handle_crash(err: Exception, command: str,
     """
 
     # TODO: Only handle crashes caused by our code, not user's code.
+    # When deploying, our tool will run the code of user's Django project.
+    # If user's code has a bug, then the traceback will contain the directory
+    # path of their Django project. We will put traceback in a public issue,
+    # but user's might not want to put these kind of information to public,
+    # so we plan to only handle crashes caused by our code.
     console.tell(
         'django-cloud-deploy crashed with ({}): {}'.format(
             type(err).__name__, err))
 
     ans = console.ask(
         'Would you like to file a bug against Django Cloud Deploy?\n'
-        'If you want, we will open a browser to direct you to the\n'
-        'tool\'s Github repo. The bug will include information about\n'
-        'your environment but you can remove any information that you\n'
-        'don\'t want to share [y/N]: ')
+        'If you want, a browser will direct you to the tool\'s \n'
+        'Github repo. The bug will include information regarding\n'
+        'the crash and information that will help us prevent this\n'
+        'in the future.[y/N]: ')
 
     while ans.lower() not in ['y', 'n']:
         ans = console.ask('Please answer "y" or "N": ')
