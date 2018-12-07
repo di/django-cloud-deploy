@@ -24,7 +24,7 @@ import webbrowser
 import jinja2
 
 from django_cloud_deploy.cli import io
-
+from django_cloud_deploy import __version__
 
 # TODO: Add an issue label for issues reported by users
 _REQUEST_URL_TEMPLATE = (
@@ -92,9 +92,9 @@ def _create_issue(command: str):
     except subprocess.CalledProcessError:
         cloud_sql_proxy_version = 'Not installed or not on PATH'
 
-    # TODO: Add django-cloud-deploy version
     template = template_env.from_string(_ISSUE_TEMPLATE)
     options = {
+        'django_cloud_deploy_version': __version__.__version__,
         'command': command,
         'gcloud_version': gcloud_version,
         'docker_version': docker_version,

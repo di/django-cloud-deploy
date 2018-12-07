@@ -33,8 +33,6 @@ def _update(args):
 def _new(args):
     """Create a new Django GKE project."""
     try:
-        d = {}
-        d['12346']
         new.main(args)
     except Exception as e:
         django_cloud_deploy.crash_handling.handle_crash(
