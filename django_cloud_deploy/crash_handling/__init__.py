@@ -29,7 +29,7 @@ from django_cloud_deploy import __version__
 # TODO: Add an issue label for issues reported by users
 _REQUEST_URL_TEMPLATE = (
     ('https://github.com/GoogleCloudPlatform/django-cloud-deploy/issues/new?'
-     'body={}'))
+     'body={}&title={}'))
 
 
 with open(os.path.join(os.path.dirname(__file__), 'template',
@@ -42,8 +42,9 @@ def handle_crash(err: Exception, command: str,
     """The tool's crashing handler.
 
     Args:
-        err: The exception get thrown.
-        command: The command causing the exception to get thrown.
+        err: The exception that was raised.
+        command: The command causing the exception to get thrown,
+            e.g. 'django-cloud-deploy new'.
         console: Object to use for user I/O.
     """
 
@@ -54,27 +55,26 @@ def handle_crash(err: Exception, command: str,
     # but user's might not want to put these kind of information to public,
     # so we plan to only handle crashes caused by our code.
     console.tell(
-        'django-cloud-deploy crashed with ({}): {}'.format(
-            type(err).__name__, err))
-
-    ans = console.ask(
-        'Would you like to file a bug against Django Cloud Deploy?\n'
-        'If you want, a browser will direct you to the tool\'s \n'
-        'Github repo. The bug will include information regarding\n'
-        'the crash and information that will help us prevent this\n'
-        'in the future.[y/N]: ')
-
-    while ans.lower() not in ['y', 'n']:
-        ans = console.ask('Please answer "y" or "N": ')
+        ('Your "{}" failed due to an internal error - please try again.'
+         '\n\n'
+         'You can report this error by filing a bug on Github. If you agree,\n'
+         'a browser window will open and an Github issue will be\n'
+         'pre-populated with the details of this crash.\n').format(command))
+    while True:
+        ans = console.ask('Would you like to file a bug? [y/N]: ')
+        ans = ans.strip().lower()
+        if ans in ['y', 'n']:
+            break
 
     if ans.lower() == 'y':
-        _create_issue(command)
+        _create_issue(err, command)
 
 
-def _create_issue(command: str):
+def _create_issue(err: Exception, command: str):
     """Open browser to create a issue on the package's Github repo.
 
     Args:
+        err: The exception that was raised.
         command: What command we want to create issue for.
     """
     template_env = jinja2.Environment()
@@ -109,5 +109,7 @@ def _create_issue(command: str):
         'platform': platform.platform(),
     }
     content = template.render(options)
-    url = urllib.parse.quote(_REQUEST_URL_TEMPLATE.format(content), safe='/:?=')
+    title = '{}:{} during "{}"'.format(type(err).__name__, str(err), command)
+    url = urllib.parse.quote(
+        _REQUEST_URL_TEMPLATE.format(content, title), safe='/:?=&')
     webbrowser.open(url)

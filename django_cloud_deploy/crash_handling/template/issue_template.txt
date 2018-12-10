@@ -21,6 +21,6 @@ Python Version: [{{ python_version }}]
 Docker Version: [{{ docker_version }}]
 
 ## Traceback
-```bash
+```.pytb
 {{ traceback }}
 ```
