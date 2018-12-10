@@ -78,7 +78,6 @@ class _ProgressBar(object):
 
     def _run(self):
         """The function to update progress bar."""
-
         # TODO: Find a way to handle tasks take longer than expectation.
         # Right now the progress bar will stuck.
         for _ in range(self._expect_time * 2):
@@ -175,14 +174,14 @@ class ConsoleIO(IO):
 
         if os.isatty(sys.stdout.fileno()) and os.name == 'posix':
             progress_bar = _ProgressBar(expect_time, message, posix=True)
+            try:
+                progress_bar.start()
+                yield
+            finally:
+                progress_bar.finish()
         else:
-            progress_bar = _ProgressBar(expect_time, message, posix=False)
-
-        try:
-            progress_bar.start()
+            print('Estimate time to finish: {} seconds'.format(expect_time))
             yield
-        finally:
-            progress_bar.finish()
 
 
 class TestIO(IO):
