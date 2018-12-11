@@ -17,11 +17,15 @@ import os
 
 from django.conf import settings
 from django.core import management
-
 from googleapiclient import discovery
 from googleapiclient import errors
 from googleapiclient import http
+import httplib2
+
 from google.auth import credentials
+
+
+_HTTP_TIMEOUT_SEC = 120
 
 
 class StaticContentServeError(Exception):
@@ -41,7 +45,12 @@ class StaticContentServeClient(object):
 
     @classmethod
     def from_credentials(cls, credentials: credentials.Credentials):
-        return cls(discovery.build('storage', 'v1', credentials=credentials))
+        return cls(
+            discovery.build(
+                'storage',
+                'v1',
+                credentials=credentials,
+                http=httplib2.Http(timeout=_HTTP_TIMEOUT_SEC)))
 
     def create_bucket(self, project_id: str, bucket_name: str):
         """Create a Google Cloud Storage Bucket on the given project.
