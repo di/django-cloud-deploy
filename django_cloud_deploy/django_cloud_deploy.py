@@ -16,6 +16,7 @@ import argparse
 import sys
 import warnings
 
+from django_cloud_deploy.cli import deploy
 from django_cloud_deploy.cli import new
 from django_cloud_deploy.cli import update
 
@@ -29,6 +30,10 @@ def _new(args):
     """Create a new Django GKE project."""
     new.main(args)
 
+
+def _deploy(args):
+    """Deploy an existing Django project."""
+    deploy.main(args)
 
 def main():
     warnings.filterwarnings(
@@ -50,6 +55,11 @@ def main():
                      'django_cloud_deploy, on Google Kubernetes Engine.'))
     update_parser.set_defaults(func=_update)
     update.add_arguments(update_parser)
+    deploy_parser = subparsers.add_parser(
+        'deploy',
+        description=('Deploys an existing Django project.'))
+    deploy_parser.set_defaults(func=_deploy)
+    deploy.add_arguments(deploy_parser)
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
