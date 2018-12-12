@@ -26,11 +26,6 @@ import jinja2
 from django_cloud_deploy.cli import io
 from django_cloud_deploy import __version__
 
-# TODO: Add an issue label for issues reported by users
-_REQUEST_URL_TEMPLATE = (
-    ('https://github.com/GoogleCloudPlatform/django-cloud-deploy/issues/new?'
-     'body={}&title={}'))
-
 
 with open(os.path.join(os.path.dirname(__file__), 'template',
                        'issue_template.txt')) as f:
@@ -63,6 +58,9 @@ def handle_crash(err: Exception, command: str,
     while True:
         ans = console.ask('Would you like to file a bug? [y/N]: ')
         ans = ans.strip().lower()
+        if not ans:  # 'N' is default.
+            break
+
         if ans in ['y', 'n']:
             break
 
@@ -110,6 +108,11 @@ def _create_issue(err: Exception, command: str):
     }
     content = template.render(options)
     title = '{}:{} during "{}"'.format(type(err).__name__, str(err), command)
-    url = urllib.parse.quote(
-        _REQUEST_URL_TEMPLATE.format(content, title), safe='/:?=&')
+
+    # TODO: Add an issue label for issues reported by users
+    request_url = ('https://github.com/GoogleCloudPlatform/django-cloud-deploy/'
+                   'issues/new?{}')
+
+    params = urllib.parse.urlencode({'title': title, 'body': content})
+    url = request_url.format(params)
     webbrowser.open(url)
